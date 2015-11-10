@@ -1,0 +1,53 @@
+<project
+    xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>kerberosdemo</groupId>
+  <artifactId>sfudemo</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>sfupoc</name>
+
+  <build>
+    <plugins>
+      <plugin>
+	<groupId>org.codehaus.mojo</groupId>
+	<artifactId>exec-maven-plugin</artifactId>
+	<version>1.1.1</version>
+	<executions>
+	  <execution>
+	    <phase>test</phase>
+	    <goals>
+	      <goal>java</goal>
+	    </goals>
+	    <configuration>
+	      <mainClass>ch.elca.sfupoc.KerberosTest</mainClass>
+	      <arguments>
+		<argument>targetUser</argument>
+		<argument>HTTP/webservice-host.domain.ltd</argument>
+	      </arguments>
+	      <systemProperties>
+		<systemProperty>
+		  <key>java.security.auth.login.config</key>
+		  <value>java.login.config</value>
+		</systemProperty>
+		<systemProperty>
+		  <key>javax.security.auth.useSubjectCredsOnly</key>
+		  <value>false</value>
+		</systemProperty>
+		<systemProperty>
+		  <key>sun.security.krb5.debug</key>
+		  <value>false</value>
+		</systemProperty>
+		<systemProperty>
+		  <key>sun.security.jgss.debug</key>
+		  <value>false</value>
+		</systemProperty>
+	      </systemProperties>
+	    </configuration>
+	  </execution>
+	</executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
