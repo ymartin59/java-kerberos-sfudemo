@@ -88,5 +88,5 @@ required if AES-256 is selected at Kerberos JAAS login.
 This code has been designed from OpenJDK JGSS test cases:
 http://cr.openjdk.java.net/~weijun/6355584/webrev.00/test/sun/security/krb5/auto/
 
-Many thanks to Achim Grolms for his [tutorial](http://grolmsnet.de/kerbtut/), a
-good introduction to Kerberos concepts.
+Many thanks to Achim Grolms for his [good introduction](http://grolmsnet.de/kerbtut/)
+to Kerberos concepts.
