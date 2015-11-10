@@ -1,7 +1,7 @@
 # Java 8 Kerberos MS-SFU Demonstration Code
 
 This small Maven Java project demonstrates how to use Kerberos SFU extension
-implement in OpenJDK since version 8.
+implemented in OpenJDK since version 8.
 
 ## Background
 
