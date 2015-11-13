@@ -77,6 +77,7 @@ service {
 };
 ```
 
+* Edit POM file to set target service SPN and a user login to test with
 * Simply run `mvn test`
 
 Required system properties to run the code are visible in source code
