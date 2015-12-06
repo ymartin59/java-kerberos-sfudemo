@@ -21,9 +21,9 @@
 	      <goal>java</goal>
 	    </goals>
 	    <configuration>
-	      <mainClass>ch.elca.sfupoc.KerberosTest</mainClass>
+	      <mainClass>sfudemo.KerberosDemo</mainClass>
 	      <arguments>
-		<argument>targetUser</argument>
+		<argument>user</argument>
 		<argument>HTTP/webservice-host.domain.ltd</argument>
 	      </arguments>
 	      <systemProperties>

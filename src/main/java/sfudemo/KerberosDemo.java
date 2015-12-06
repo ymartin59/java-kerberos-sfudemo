@@ -41,6 +41,7 @@ import javax.security.auth.login.LoginException;
 
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
+import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.GSSName;
 import org.ietf.jgss.Oid;
@@ -49,7 +50,7 @@ import com.sun.security.jgss.ExtendedGSSContext;
 import com.sun.security.jgss.ExtendedGSSCredential;
 
 /**
- * Kerberos S4U2self demonstration test case.
+ * Kerberos S4U2proxy demonstration test case.
  *
  * 1. Do initial JAAS login as "servicelogin" with Kerberos LoginContext set in
  * java.login.conf and keytab
@@ -100,7 +101,8 @@ public class KerberosDemo {
      * @throws LoginException
      */
     public Subject doInitialLogin() throws LoginException {
-        // PasswordCallbackHandler is only useful if login.config keytab is out of order (no not provide login/password here)
+        // PasswordCallbackHandler is only useful if login.config keytab is out
+        // of order (no not provide login/password here)
         LoginContext lc = new LoginContext("service", new UserPasswordCallbackHandler("servicelogin","servicepassword"));
         lc.login();
         serviceSubject = lc.getSubject();
@@ -146,17 +148,26 @@ public class KerberosDemo {
                                             final GSSCredential userCredentials,
                                             final Oid mech)
         throws Exception {
+        final Oid KRB5_PRINCIPAL_OID = new Oid("1.2.840.113554.1.2.2.1");
         ExtendedGSSContext context =
             Subject.doAs(this.serviceSubject, new PrivilegedExceptionAction<ExtendedGSSContext>() {
                     public ExtendedGSSContext run() throws Exception {
                         GSSManager manager = GSSManager.getInstance();
+                        GSSName servicePrincipal = manager.createName(target, KRB5_PRINCIPAL_OID);
                         ExtendedGSSContext extendedContext =
-                            (ExtendedGSSContext) manager.createContext(manager.createName(target, null),
+                            (ExtendedGSSContext) manager.createContext(servicePrincipal,
                                                                        mech,
                                                                        userCredentials,
                                                                        GSSContext.DEFAULT_LIFETIME);
-                        extendedContext.requestMutualAuth(true);
-                        extendedContext.requestConf(true);
+                        // Enable mutual authentication, validate server's
+                        // response token
+                        //extendedContext.requestMutualAuth(true);
+
+                        // Enable confidentiality, wrap exchanged data
+                        //extendedContext.requestConf(true);
+
+                        // Enable integrity, to generate Message Integrity Code (MIC)
+                        //extendedContext.requestInteg(true);
                         return extendedContext;
                     }
                 });
@@ -164,44 +175,41 @@ public class KerberosDemo {
     }
 
     /**
-     * Generate a context and TGS token for a target user
+     * Establish GSS context and generate TGS token.
      *
      * @param targetUserName user to impersonate
      * @param targetService target service SPN
      * @return Base64 token
      * @throws Exception many thinks may fail
      */
-    public String generateToken(String targetUserName, String targetService) throws Exception {
-        final Oid SPNEGO_OID = new Oid("1.3.6.1.5.5.2");
+    public String generateToken(ExtendedGSSContext context) throws Exception {
+        byte[] token = new byte[0];
+        token = context.initSecContext(token, 0, token.length);
 
-        // Get impersonated user credentials
-        GSSCredential impersonatedUserCreds = impersonate(targetUserName);
-        System.out.println("Credentials for " + targetUserName + ": " + impersonatedUserCreds);
+        if (!context.isEstablished()) {
+            System.err.println("Not established yet. Other rounds required.");
+            // Refer to GssSpNegoClient.java code at
+            // https://docs.oracle.com/javase/8/docs/technotes/guides/security/jgss/lab/part5.html
+        }
 
-        // Create context for target service
-        ExtendedGSSContext context = startAsClient(targetService, impersonatedUserCreds, SPNEGO_OID);
-        final byte[] token = context.initSecContext(new byte[0], 0, 0);
         System.out.println("Context srcName " + context.getSrcName());
         System.out.println("Context targName " + context.getTargName());
 
         final String result = Base64.getEncoder().encodeToString(token);
         System.out.println("Token " + Base64.getEncoder().encodeToString(token));
 
-        // Free context
-        context.dispose();
-        // Free impersonated user credentials
-        impersonatedUserCreds.dispose();
-
         return result;
     }
 
-    /** Expected argument: target user name and target SVN. */
+    /** Expected argument: target user name and target SPN. */
     public static void main(String[] args) {
+        GSSCredential impersonatedUserCreds = null;
+        ExtendedGSSContext context = null;
         try {
             KerberosDemo test = new KerberosDemo();
             System.out.println("Service subject: " + test.doInitialLogin());
 
-            String targetUserName = "undef";
+            String targetUserName = "user";
             String targetSPN = "HTTP/webservice-host.domain.ltd";
             if (args.length == 2) {
                 targetUserName = args[0];
@@ -211,14 +219,42 @@ public class KerberosDemo {
                 System.exit(1);
             }
 
-            test.generateToken(targetUserName, targetSPN);
+            final Oid SPNEGO_OID = new Oid("1.3.6.1.5.5.2");
+
+            // Get impersonated user credentials thanks S4U2self mechanism
+            impersonatedUserCreds = test.impersonate(targetUserName);
+            System.out.println("Credentials for " + targetUserName + ": " + impersonatedUserCreds);
+
+            // Create context for target service thanks S4U2proxy mechanism
+            context = test.startAsClient(targetSPN, impersonatedUserCreds, SPNEGO_OID);
+
+            String spnegoToken = test.generateToken(context);
 
             // Both serviceSubject and serviceCredentials can be kept
             // for the whole server JVM lifetime
             // but renewed when GSSExceptions are thrown.
 
+            // context and impersonatedUserCreds should be freed in finally
+            // after token generation
+
+            // Use context.wrap and context.unwrap when requesting
+            // confidentiality. See GssSpNegoClient.java code at
+            // https://docs.oracle.com/javase/8/docs/technotes/guides/security/jgss/lab/part5.html
+
         } catch (Exception e) {
             e.printStackTrace();
+
+        } finally {
+            try {
+                // Free context
+                if (context != null) {
+                    context.dispose();
+                }
+                // Free impersonated user credentials
+                if (impersonatedUserCreds != null) {
+                    impersonatedUserCreds.dispose();
+                }
+            } catch(GSSException e) { } // ignore
         }
     }
 

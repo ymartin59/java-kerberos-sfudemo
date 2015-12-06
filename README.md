@@ -5,10 +5,9 @@ implemented in OpenJDK since version 8.
 
 ## Background
 
-Microsoft has implemented Kerberos extension known as MS-SFU in its
-ActiveDirectory product to allow impersonation and propose a more secure
-alternative to Kerberos V5 delegation, often known as _Kerberos constrained
-delegation_.
+Microsoft has implemented Kerberos extension known as _Kerberos constrained
+delegation_ (MS-SFU) in its ActiveDirectory product to allow impersonation and
+propose a more secure alternative to Kerberos V5 delegation.
 
 Reference: https://msdn.microsoft.com/en-us/library/cc246071.aspx
 
