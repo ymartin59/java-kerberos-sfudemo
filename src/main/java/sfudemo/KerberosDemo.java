@@ -161,13 +161,14 @@ public class KerberosDemo {
                                                                        GSSContext.DEFAULT_LIFETIME);
                         // Enable mutual authentication, validate server's
                         // response token
-                        //extendedContext.requestMutualAuth(true);
+                        extendedContext.requestMutualAuth(true);
 
                         // Enable confidentiality, wrap exchanged data
                         //extendedContext.requestConf(true);
 
                         // Enable integrity, to generate Message Integrity Code (MIC)
                         //extendedContext.requestInteg(true);
+
                         return extendedContext;
                     }
                 });
@@ -192,8 +193,10 @@ public class KerberosDemo {
             // https://docs.oracle.com/javase/8/docs/technotes/guides/security/jgss/lab/part5.html
         }
 
-        System.out.println("Context srcName " + context.getSrcName());
-        System.out.println("Context targName " + context.getTargName());
+        if (context.isEstablished()) {
+            System.out.println("Context srcName " + context.getSrcName());
+            System.out.println("Context targName " + context.getTargName());
+        }
 
         final String result = Base64.getEncoder().encodeToString(token);
         System.out.println("Token " + Base64.getEncoder().encodeToString(token));
@@ -215,7 +218,9 @@ public class KerberosDemo {
                 targetUserName = args[0];
                 targetSPN = args[1];
             } else {
-                System.err.println("Usage: userToImpersonate targetSPN");
+                System.err.println("Usage: user SPN");
+                System.err.println(" - user to impersonate for a call");
+                System.err.println(" - canonicalized target SPN");
                 System.exit(1);
             }
 

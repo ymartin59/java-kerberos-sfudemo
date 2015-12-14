@@ -9,7 +9,11 @@ Microsoft has implemented Kerberos extension known as _Kerberos constrained
 delegation_ (MS-SFU) in its ActiveDirectory product to allow impersonation and
 propose a more secure alternative to Kerberos V5 delegation.
 
-Reference: https://msdn.microsoft.com/en-us/library/cc246071.aspx
+Reference documentation: https://msdn.microsoft.com/en-us/library/cc246071.aspx
+
+[The protocol overview](https://msdn.microsoft.com/en-us/library/cc246080.aspx)
+compares MS-SFU delegation with Kerberos V5 delegation. MS-SFU grants
+confidentiality for user's TGT credentials.
 
 In Java 8, MS-SFU support has been implemented in JGSS API:
 https://docs.oracle.com/javase/8/docs/technotes/guides/security/jgss/jgss-features.html
@@ -32,19 +36,33 @@ Kerberos constrained delegation.
 
 ## Principle
 
-From the visitor's login, the Java code trusted as a service in ActiveDirectory
-has to send `S4U2proxy` command to generate a TGS ticket for the target
-webservice SPN on behalf of him.
+From the visitor's login name, the Java code trusted as a service in
+ActiveDirectory uses `S4U2self` message to get a service ticket (TGS) for the
+visitor. This process is also known as protocol transition.
 
 In Java, JGSS API method `impersonate` is used to create specific GSS
 credentials in that purpose. At TGS generation, ActiveDirectory checks for
 Kerberos constrained delegation configuration set on the Java service account.
 
-## Deployment
+Thanks to this service ticket, code uses `S4U2proxy` message to generate a TGS
+ticket for the target webservice SPN on behalf of the visitor.
+
+## Use case
 
 Suppose a webservice is available at `http://webservice-host.domain.ltd` and
 requires SPNEGO authentication with SPN `HTTP/webservice-host.domain.ltd` in
 realm `DOMAIN.LTD`.
+
+Accord to Kerberos RFC, based on URI, a client (a browser) has to do a DNS
+lookup from hostname and a reverse-DNS lookup to create SPN using a FQDN.
+
+Here, the SPN `HTTP/webservice-host.domain.ltd` is supposed to be
+canonicalized.
+
+If a DNS alias and virtual host is defined for your service, you should apply
+hostname canonicalization, this demonstration code does not.
+
+## Deployment
 
 Here is the procedure to create a service account for your Java code:
 
@@ -59,9 +77,9 @@ ktpass -princ HTTP/javaservice@DOMAIN.LTD -mapuser DOMAIN\javaservice
  -out C:\Temp\javaservice.keytab
 ```
 
-* In `javaservice` account properties, grant constrained Kerberos delegation
-   to webservice SPN `HTTP/webservice-host.domain.ltd` by looking its
-   corresponding service account.
+* In `javaservice` account properties, grant constrained Kerberos delegation to
+   webservice canonicalized SPN `HTTP/webservice-host.domain.ltd` by looking
+   its corresponding service account.
 
 * Copy keytab on your system and edit template `java.login.config`
 
