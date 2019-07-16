@@ -90,7 +90,7 @@ service {
   storeKey=true
   doNotPrompt=true
   keyTab="/path/to/javaservice.keytab"
-  principal="javaservice@DOMAIN.LTD";
+  principal="HTTP/javaservice@DOMAIN.LTD";
 };
 ```
 
